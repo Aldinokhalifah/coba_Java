@@ -13,7 +13,7 @@ public class TebakAngka {
             Scanner scanner = new Scanner(System.in);
             angkaTebak = scanner.nextInt();
             if (angkaTebak < 1 || angkaTebak > 100) {
-                System.out.println("Tebakan Anda harus antara 1 dan 10. Silakan coba lagi.");
+                System.out.println("Tebakan Anda harus antara 1 dan 100. Silakan coba lagi.");
             } else if (angkaTebak < angkaTebakan) {
                 System.out.println("Tebakan Anda terlalu rendah. Coba lagi!");
             } else if (angkaTebak > angkaTebakan) {
