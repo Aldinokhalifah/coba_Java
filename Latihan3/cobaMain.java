@@ -9,8 +9,7 @@ public class cobaMain {
         String jawab = scanner.nextLine();
 
         if(jawab.equalsIgnoreCase("iya")) {
-            TebakAngka tebakAngka = new TebakAngka();
-            tebakAngka.main(args);
+            TebakAngka.main(args);
         } else {
             System.out.println("Baiklah, sampai jumpa lain waktu!");
         }
