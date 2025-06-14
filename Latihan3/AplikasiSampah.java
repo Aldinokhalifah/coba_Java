@@ -84,8 +84,6 @@ public class AplikasiSampah {
                     laporanSampah.tambahLaporan(laporan);
                     break;
                 case 3:
-                    // System.out.print("Masukkan berat sampah yang ingin disetor (kg): ");
-                    // int berat = scanner.nextInt();
                     bankSampah.setorSampah();
                     bankSampah.tampilkanSaldo();
                     break;
