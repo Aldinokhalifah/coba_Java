@@ -13,6 +13,7 @@ import belajar_springFramework.core.Repository.ProductRepository;
 import belajar_springFramework.core.Service.CategoryService;
 import belajar_springFramework.core.Service.CustomerService;
 import belajar_springFramework.core.Service.ProductService;
+import belajar_springFramework.core.data.MultiFoo;
 
 public class ComponentTest {
     private ConfigurableApplicationContext applicationContext;
@@ -59,5 +60,11 @@ public class ComponentTest {
 
         Assertions.assertSame(customerService.getNormalCustomerRepository(), normalCustomerRepository);
         Assertions.assertSame(customerService.getPremiumCustomerRepository(), premiumCustomerRepository);
+    }
+
+    @Test 
+    void onjectProvider() {
+        MultiFoo multiFoo = applicationContext.getBean(MultiFoo.class);
+        Assertions.assertEquals(3, multiFoo.getFoos().size());
     }
 }
