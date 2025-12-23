@@ -1,5 +1,6 @@
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -204,6 +205,83 @@ public class Pagination_User {
             int endIndex = Math.min(startIndex + size, totalData);
 
             return users.subList(startIndex, endIndex);
+        }
+
+        public List<User> sortUsers(int page, int size, String sortBy, String direction) {
+            if (page < 1) {
+                throw new IllegalArgumentException("Halaman minimal 1");
+            }
+            if (size < 1) {
+                throw new IllegalArgumentException("Jumlah data minimal 1");
+            }
+            if (sortBy == null || sortBy.trim().isEmpty()) {
+                throw new IllegalArgumentException("SortBy harus diisi");
+            }
+            if (direction == null || direction.trim().isEmpty()) {
+                throw new IllegalArgumentException("Arah harus diisi");
+            }
+
+            String field = sortBy.trim().toLowerCase();
+            String dir = direction.trim().toLowerCase();
+
+            // Validasi direction
+            if (!dir.equals("asc") && !dir.equals("desc")) {
+                throw new IllegalArgumentException("Direction harus 'asc' atau 'desc'");
+            }
+            boolean ascending = dir.equals("asc");
+
+            // Ambil semua data
+            List<User> users = repo.findAll();
+
+            // Lakukan sorting sesuai field
+            Comparator<User> comparator;
+
+            switch (field) {
+                case "username":
+                    comparator = Comparator.comparing(User::getUsername, String.CASE_INSENSITIVE_ORDER);
+                    break;
+                case "email":
+                    comparator = Comparator.comparing(User::getEmail, String.CASE_INSENSITIVE_ORDER);
+                    break;
+                case "role":
+                    comparator = Comparator.comparing(User::getRole);
+                    break;
+                case "status":
+                    comparator = Comparator.comparing(User::getStatus);
+                    break;
+                case "createdat":
+                case "created_at":
+                    comparator = Comparator.comparing(User::getCreatedAt);
+                    break;
+                case "updatedat":
+                case "updated_at":
+                    comparator = Comparator.comparing(User::getUpdatedAt);
+                    break;
+                default:
+                    throw new IllegalArgumentException("SortBy tidak valid. Pilihan: username, email, role, status, createdAt, updatedAt");
+            }
+
+            // Terapkan ascending/descending
+            if (!ascending) {
+                comparator = comparator.reversed();
+            }
+
+            // Sort data
+            List<User> sortedUsers = users.stream()
+                    .sorted(comparator)
+                    .collect(Collectors.toList());
+
+            // Pagination
+            int totalData = sortedUsers.size();
+            int startIndex = (page - 1) * size;
+
+            if (startIndex >= totalData) {
+                return List.of(); // halaman kosong
+            }
+
+            int endIndex = Math.min(startIndex + size, totalData);
+
+            return sortedUsers.subList(startIndex, endIndex);
         }
 
     }
