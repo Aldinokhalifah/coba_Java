@@ -126,6 +126,43 @@ public class Pagination_User {
         }
     }
 
+    static class PageResult<T> {
+
+        private final List<T> data;
+        private final int page;
+        private final int size;
+        private final int totalData;
+        private final int totalPages;
+
+        public PageResult(List<T> data, int page, int size, int totalData, int totalPages) {
+            this.data = data;
+            this.page = page;
+            this.size = size;
+            this.totalData = totalData;
+            this.totalPages = totalPages;
+        }
+
+        public List<T> getData() {
+            return data;
+        }
+
+        public int getPage() {
+            return page;
+        }
+
+        public int getSize() {
+            return size;
+        }
+
+        public int getTotalData() {
+            return totalData;
+        }
+
+        public int getTotalPages() {
+            return totalPages;
+        }
+    }
+
     static class UserService {
         private final UserRepository repo;
 
@@ -133,7 +170,7 @@ public class Pagination_User {
             this.repo = repo;
         }
 
-        public List<User> getUsers(int page, int size, User.Status status, User.Role role, String sortBy, String direction) {
+        public PageResult<User> getUsers(int page, int size, User.Status status, User.Role role, String sortBy, String direction) {
 
             if (page < 1) {
                 throw new IllegalArgumentException("Halaman minimal 1");
@@ -209,15 +246,18 @@ public class Pagination_User {
 
             // Pagination
             int totalData = sortedUsers.size();
+            int totalPages = (int) Math.ceil((double) totalData / size);
             int startIndex = (page - 1) * size;
 
             if (startIndex >= totalData) {
-                return List.of(); // halaman kosong
+                return new PageResult<>(List.of(), page, size, totalData, totalPages); // halaman kosong
             }
 
             int endIndex = Math.min(startIndex + size, totalData);
 
-            return sortedUsers.subList(startIndex, endIndex);
+            List<User> dataSorted = sortedUsers.subList(startIndex, endIndex);
+
+            return new PageResult<>(dataSorted, page, size, totalData, totalPages);
         }
 
         public List<User> getUsersByStatus(User.Status status, int page, int size) {
