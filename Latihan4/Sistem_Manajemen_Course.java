@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Sistem_Manajemen_Course {
     
-    static class Course {
+    public static class Course {
         enum Status{DRAFT, PUBLISHED, ARCHIVED};
 
         private Long id;
@@ -68,7 +68,7 @@ public class Sistem_Manajemen_Course {
         }
     }
 
-    static interface  CourseRepository {
+    public static interface  CourseRepository {
         Optional<Course> findById(Long id);
         List<Course> findAll();
         void save(Course course);
