@@ -1,11 +1,8 @@
 package Sistem_Subcription_Digital.model;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class Subscription {
-    private AtomicLong seq;
     public enum SubscriptionStatus{ACTIVE, SUSPENDED, EXPIRED, CANCELLED};
 
     private Long id;
@@ -22,6 +19,7 @@ public class Subscription {
         this.createdAt = createdAt;
         this.startDate = startDate;
         this.endDate = endDate;
+        this.status = status;
         this.autoRenew = autoRenew;
     }
 
@@ -85,17 +83,16 @@ public class Subscription {
         
         LocalDateTime NewEndDate = calculateEndDate(startDate, cycle);
         
-        this.id = seq.incrementAndGet();
         this.user = user;
         this.plan = plan;
-        this.createdAt = LocalDateTime.now();
         this.startDate = startDate;
         this.endDate = NewEndDate;
+        this.createdAt = LocalDateTime.now();
         this.status = SubscriptionStatus.ACTIVE;
         this.autoRenew = true;
     }
 
-    public void upgradeTo(Plan newPlan, LocalDate effectiveDate) {
+    public void upgradeTo(Plan newPlan, LocalDateTime effectiveDate) {
         if(newPlan == null) {
             throw new IllegalArgumentException("Plan baru tidak valid");
         }
@@ -113,11 +110,11 @@ public class Subscription {
         }
         
         this.plan = newPlan;
-        this.startDate = effectiveDate.atStartOfDay();
+        this.startDate = effectiveDate.toLocalDate().atStartOfDay();
         this.endDate = calculateEndDate(this.startDate, newPlan.getPeriod());
     }
 
-    public void downgradeTo(Plan newPlan, LocalDate effectiveDate) {
+    public void downgradeTo(Plan newPlan, LocalDateTime effectiveDate) {
         if(newPlan == null) {
             throw new IllegalArgumentException("Plan baru tidak valid");
         }
@@ -138,12 +135,12 @@ public class Subscription {
             throw new IllegalArgumentException("Plan baru harus memiliki harga lebih rendah");
         }
         
-        if(!effectiveDate.equals(this.endDate.toLocalDate())) {
+        if(!effectiveDate.equals(this.endDate)) {
             throw new IllegalArgumentException("Tanggal efektif harus sama dengan tanggal berakhir subscription");
         }
         
         this.plan = newPlan;
-        this.startDate = effectiveDate.atStartOfDay();
+        this.startDate = effectiveDate.toLocalDate().atStartOfDay();
         this.endDate = calculateEndDate(this.startDate, newPlan.getPeriod());
     }
 
@@ -157,15 +154,15 @@ public class Subscription {
 
     public void resume() {
         if(!this.status.equals(SubscriptionStatus.SUSPENDED)) {
-            throw new IllegalStateException("Status aktif");
+            throw new IllegalStateException("Hanya subscription yang SUSPENDED bisa resume");
         }
 
         this.status = SubscriptionStatus.ACTIVE;
     }
 
     public void expire() {
-        if(!this.status.equals(SubscriptionStatus.ACTIVE) || !this.status.equals(SubscriptionStatus.SUSPENDED)) {
-            throw new IllegalStateException("Status tidak aktif");
+        if(!(this.status.equals(SubscriptionStatus.ACTIVE) || this.status.equals(SubscriptionStatus.SUSPENDED))) {
+            throw new IllegalStateException("Status aktif");
         }
 
         this.status = SubscriptionStatus.EXPIRED;
