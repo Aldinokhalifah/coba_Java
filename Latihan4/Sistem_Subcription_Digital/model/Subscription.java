@@ -64,6 +64,8 @@ public class Subscription {
         return startDate;
     }
 
+    public void setIdForRepository(Long id) { this.id = id; }
+
     public void create(User user, Plan plan, LocalDateTime startDate, Plan.Period cycle) {
         if(user == null) {
             throw new IllegalArgumentException("User tidak valid");
