@@ -58,6 +58,8 @@ public class Payment {
         return providerTransactionId;
     }
 
+    public void setIdForRepository(Long id) { this.id = id; }
+
     public Payment attempt(Invoice invoiceId, double amount, PaymentMethod method) {
         if(amount <= 0) {
             throw new IllegalArgumentException("Jumlah tidak boleh kurang dari 1");

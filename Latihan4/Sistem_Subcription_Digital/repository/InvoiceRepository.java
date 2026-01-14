@@ -1,9 +1,9 @@
 package Sistem_Subcription_Digital.repository;
 
-import java.util.Optional;
-import java.util.List;
-import java.time.LocalDate;
 import Sistem_Subcription_Digital.model.Invoice;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 public interface InvoiceRepository {
 
@@ -13,4 +13,3 @@ public interface InvoiceRepository {
     List<Invoice> findOverdueInvoices(LocalDate today);
     void save(Invoice invoice);
 }
-

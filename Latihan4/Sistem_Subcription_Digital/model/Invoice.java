@@ -62,6 +62,8 @@ public class Invoice {
         return failureReason;
     }
 
+    public void setIdForRepository(Long id) { this.id = id; }
+
     public void markPaid(LocalDateTime paidAt) {
         if(this.status.equals(InvoiceStatus.PAID) || this.status.equals(InvoiceStatus.EXPIRED)) {
             throw new IllegalStateException("Invoice sudah dibayar atau kadaluarsa");
