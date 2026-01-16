@@ -42,4 +42,6 @@ public class Plan {
     public boolean getAllowDowngradeMidCycle() {
         return allowDowngradeMidCycle;
     }
+
+    public void setIdForRepository(Long id) { this.id = id; }
 }

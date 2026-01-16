@@ -30,4 +30,6 @@ public class User {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public void setIdForRepository(Long id) { this.id = id; }
 }
