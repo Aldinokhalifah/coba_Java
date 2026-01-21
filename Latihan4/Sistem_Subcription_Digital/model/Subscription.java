@@ -1,5 +1,6 @@
 package Sistem_Subcription_Digital.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Subscription {
@@ -55,7 +56,7 @@ public class Subscription {
         return autoRenew;
     }
 
-    private LocalDateTime calculateEndDate(LocalDateTime startDate, Plan.Period cycle) {
+    private static LocalDateTime calculateEndDate(LocalDateTime startDate, Plan.Period cycle) {
         if(cycle == Plan.Period.MONTHLY) {
             return startDate.plusMonths(1);
         } else if(cycle == Plan.Period.YEARLY) {
@@ -66,35 +67,35 @@ public class Subscription {
 
     public void setIdForRepository(Long id) { this.id = id; }
 
-    public void create(User user, Plan plan, LocalDateTime startDate, Plan.Period cycle) {
+    public static Subscription create(User user, Plan plan, LocalDateTime startDate, Plan.Period cycle) {
         if(user == null) {
             throw new IllegalArgumentException("User tidak valid");
         }
-
         if(plan == null) {
             throw new IllegalArgumentException("Plan tidak valid");
         }
-        
         if(startDate == null) {
             throw new IllegalArgumentException("Tanggal mulai tidak valid");
         }
-
         if(cycle == null) {
             throw new IllegalArgumentException("Cycle tidak valid");
         }
         
-        LocalDateTime NewEndDate = calculateEndDate(startDate, cycle);
+        Subscription subscription = new Subscription(
+            null,
+            user,
+            plan,
+            LocalDateTime.now(),
+            startDate,
+            calculateEndDate(startDate, cycle),
+            SubscriptionStatus.ACTIVE,
+            true
+        );
         
-        this.user = user;
-        this.plan = plan;
-        this.startDate = startDate;
-        this.endDate = NewEndDate;
-        this.createdAt = LocalDateTime.now();
-        this.status = SubscriptionStatus.ACTIVE;
-        this.autoRenew = true;
+        return subscription;
     }
 
-    public void upgradeTo(Plan newPlan, LocalDateTime effectiveDate) {
+    public void upgradeTo(Plan newPlan, LocalDate effectiveDate) {
         if(newPlan == null) {
             throw new IllegalArgumentException("Plan baru tidak valid");
         }
@@ -112,11 +113,11 @@ public class Subscription {
         }
         
         this.plan = newPlan;
-        this.startDate = effectiveDate.toLocalDate().atStartOfDay();
+        this.startDate = effectiveDate.atStartOfDay();
         this.endDate = calculateEndDate(this.startDate, newPlan.getPeriod());
     }
 
-    public void downgradeTo(Plan newPlan, LocalDateTime effectiveDate) {
+    public void downgradeTo(Plan newPlan, LocalDate effectiveDate) {
         if(newPlan == null) {
             throw new IllegalArgumentException("Plan baru tidak valid");
         }
@@ -137,12 +138,12 @@ public class Subscription {
             throw new IllegalArgumentException("Plan baru harus memiliki harga lebih rendah");
         }
         
-        if(!effectiveDate.equals(this.endDate)) {
+        if(!effectiveDate.equals(this.endDate.toLocalDate())) {
             throw new IllegalArgumentException("Tanggal efektif harus sama dengan tanggal berakhir subscription");
         }
         
         this.plan = newPlan;
-        this.startDate = effectiveDate.toLocalDate().atStartOfDay();
+        this.startDate = effectiveDate.atStartOfDay();
         this.endDate = calculateEndDate(this.startDate, newPlan.getPeriod());
     }
 

@@ -60,16 +60,25 @@ public class Payment {
 
     public void setIdForRepository(Long id) { this.id = id; }
 
-    public Payment attempt(Invoice invoiceId, double amount, PaymentMethod method) {
+    public static Payment attempt(Invoice invoice, double amount, PaymentMethod method) {
         if(amount <= 0) {
             throw new IllegalArgumentException("Jumlah tidak boleh kurang dari 1");
         }
 
-        if(invoiceId == null) {
-            throw new IllegalArgumentException("Invoice id tidak valid");
+        if(invoice == null) {
+            throw new IllegalArgumentException("Invoice tidak valid");
         }
 
-        Payment newPayment = new Payment(this.id, invoiceId, amount, LocalDateTime.now(), method, PaymentStatus.SUCCESS, null, null);
+        Payment newPayment = new Payment(
+            null,
+            invoice,
+            amount,
+            LocalDateTime.now(),
+            method,
+            PaymentStatus.PENDING,
+            null,
+            null
+        );
 
         return newPayment;
     }
@@ -86,8 +95,8 @@ public class Payment {
     }
 
     public void fail(String providerResponse) {
-        if(!this.status.equals(PaymentStatus.FAILED)) {
-            throw new IllegalStateException("Status bukan gagal");
+        if(!this.status.equals(PaymentStatus.PENDING)) {
+            throw new IllegalStateException("Status bukan pending");
         }
 
         this.status = PaymentStatus.FAILED;
