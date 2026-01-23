@@ -180,4 +180,42 @@ public class Subscription {
         this.endDate = LocalDateTime.now();
     }
 
+    public void onInvoicePaid(Invoice invoice) {
+        if (invoice == null) {
+            throw new IllegalArgumentException("Invoice tidak valid");
+        }
+
+        if (!this.equals(invoice.getSubscription())) {
+            throw new IllegalStateException("Invoice bukan milik subscription ini");
+        }
+
+        if (this.status == SubscriptionStatus.CANCELLED ||
+            this.status == SubscriptionStatus.EXPIRED) {
+            throw new IllegalStateException("Subscription sudah berakhir");
+        }
+
+        // kasus pertama kali subscribe
+        if (this.status == SubscriptionStatus.SUSPENDED) {
+            this.status = SubscriptionStatus.ACTIVE;
+        }
+
+        // perpanjang masa aktif
+        this.startDate = LocalDateTime.now();
+        this.endDate = calculateEndDate(this.startDate, this.plan.getPeriod());
+    }
+
+    public void onInvoiceFailed(Invoice invoice) {
+        if (invoice == null) {
+            throw new IllegalArgumentException("Invoice tidak valid");
+        }
+
+        if (!this.equals(invoice.getSubscription())) {
+            throw new IllegalStateException("Invoice bukan milik subscription ini");
+        }
+
+        // jangan suspend kalau sudah cancel / expired
+        if (this.status == SubscriptionStatus.ACTIVE) {
+            this.status = SubscriptionStatus.SUSPENDED;
+        }
+    }
 }   

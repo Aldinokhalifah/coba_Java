@@ -12,6 +12,8 @@ import Sistem_Subcription_Digital.repository.SubscriptionRepository;
 import Sistem_Subcription_Digital.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 public class SubscriptionService {
     SubscriptionRepository subscriptionRepository;
@@ -221,12 +223,20 @@ public class SubscriptionService {
     public void handleInvoicePayment(Long invoiceId, Payment.PaymentStatus paymentStatus, String providerTransactionId, String providerResponse) {
         Invoice invoice = invoiceRepository.findById(invoiceId).orElseThrow(() -> new IllegalArgumentException("Invoice id not found"));
 
+        Subscription subscription = invoice.getSubscription();
+
         if( invoice.getStatus() == Invoice.InvoiceStatus.PAID ||
             invoice.getStatus() == Invoice.InvoiceStatus.EXPIRED) {
             throw new IllegalStateException("Invoice already paid or expired");
         }
 
-        invoice.isPayable(LocalDateTime.now());
+        if (paymentStatus == Payment.PaymentStatus.SUCCESS && providerTransactionId == null) {
+            throw new IllegalArgumentException("Missing provider transaction id for successful payment");
+        }
+
+        if (!invoice.isPayable(LocalDateTime.now())) {
+            throw new IllegalStateException("Invoice not payable");
+        }
 
         Payment newPayment = Payment.attempt(invoice, invoice.getAmount(), Payment.PaymentMethod.MANUAL);
 
@@ -234,33 +244,75 @@ public class SubscriptionService {
             throw new IllegalStateException("Amount less than 1");
         }
 
-        if(newPayment.getAmount() != invoice.getAmount()) {
-            throw new IllegalStateException("Amount does not match");
+        if(paymentStatus == Payment.PaymentStatus.SUCCESS) {
+            newPayment.complete(providerTransactionId, providerResponse, LocalDateTime.now());
+            
+            invoice.markPaid(LocalDateTime.now());
+
+            subscription.onInvoicePaid(invoice);;
+        } else {
+            newPayment.fail(providerResponse);
+
+            invoice.markFailed(providerResponse);
+
+            subscription.onInvoiceFailed(invoice);
         }
-
-        if(newPayment.getStatus() != Payment.PaymentStatus.PENDING) {
-            throw new IllegalStateException("Status is not pending");
-        }
-
-        newPayment.complete(providerTransactionId, providerResponse, LocalDateTime.now());
-
-        paymentRepository.save(newPayment);
-
-        invoice.markPaid(LocalDateTime.now());
-
-        invoiceRepository.save(invoice);
-
         
+        paymentRepository.save(newPayment);
+        invoiceRepository.save(invoice);
+        subscriptionRepository.save(subscription);
     }
 
-    // public void runPeriodicBilling(LocalDate billingDate) {
-        
-    // }
-    // public Optional<Subscription> getById(Long subscriptionId) {
-        
-    // }
-    // public List<Subscription> getByUserId(Long userId) {
-        
-    // }
+    public void runPeriodicBilling(LocalDate billingDate) {
+        if (billingDate == null) {
+            throw new IllegalArgumentException("Billing date is null");
+        }
 
+        List<Subscription> subscriptions = subscriptionRepository.findExpiringBefore(billingDate);
+
+        for (Subscription s : subscriptions) {
+            // skip final states
+            if (s.getStatus() == Subscription.SubscriptionStatus.CANCELLED ||
+                s.getStatus() == Subscription.SubscriptionStatus.EXPIRED) {
+                continue;
+            }
+
+            // auto renew mati → expire
+            if (!s.getAutoRenew()) {
+                s.expire();
+                subscriptionRepository.save(s);
+                continue;
+            }
+
+            // auto renew hidup
+            // cek invoice lama
+            if (invoiceRepository.findUnpaidBySubscription(s.getId()).isPresent()) {
+                s.suspend();
+                subscriptionRepository.save(s);
+                continue;
+            }
+
+            Invoice renewalInvoice = new Invoice(
+                null,
+                s,
+                billingDate.atStartOfDay(),
+                billingDate.plusDays(7).atStartOfDay(),
+                s.getPlan().getPricePeriod(),
+                Invoice.InvoiceStatus.PENDING,
+                null,
+                0,
+                null
+            );
+
+            invoiceRepository.save(renewalInvoice);
+        }
+    }
+
+    public Optional<Subscription> getById(Long subscriptionId) {
+        return subscriptionRepository.findById(subscriptionId);
+    }
+
+    public List<Subscription> getByUserId(Long userId) {
+        return subscriptionRepository.findByUserId(userId);
+    }
 }
