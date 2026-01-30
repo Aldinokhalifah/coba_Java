@@ -57,4 +57,17 @@ public class InMemoryPaymentRepository implements PaymentRepository {
             storage.put(payment.getId(), payment);
         }
     }
+
+    @Override
+    public List<Payment> findPendingByInvoiceId(Long invoiceId) {
+        if(invoiceId == null) {
+            return List.of();
+        }
+
+        return storage
+        .values().stream()
+        .filter(s -> s.getInvoice() != null && Objects.equals(s.getInvoice().getId(), invoiceId))
+        .filter(s -> s.getStatus() == Payment.PaymentStatus.PENDING)
+        .collect(Collectors.toList());
+    }
 }

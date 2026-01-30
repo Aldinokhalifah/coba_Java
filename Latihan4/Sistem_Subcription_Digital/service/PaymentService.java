@@ -4,6 +4,7 @@ import Sistem_Subcription_Digital.model.Invoice;
 import Sistem_Subcription_Digital.model.Invoice.InvoiceStatus;
 import Sistem_Subcription_Digital.model.Payment;
 import Sistem_Subcription_Digital.model.Payment.PaymentStatus;
+import Sistem_Subcription_Digital.model.Subscription;
 import Sistem_Subcription_Digital.repository.InvoiceRepository;
 import Sistem_Subcription_Digital.repository.PaymentRepository;
 import Sistem_Subcription_Digital.repository.SubscriptionRepository;
@@ -179,11 +180,133 @@ public class PaymentService {
         invoiceRepository.save(invoice);
     }
 
-    public void completePayment(Payment payment, String providerTxId, String providerResponse, LocalDateTime paidAt) {}
+    public void completePayment(Payment payment, String providerTxId, String providerResponse, LocalDateTime paidAt) {
+        if(payment == null) {
+            throw new IllegalArgumentException("Payment is null");
+        }
 
-    public void failPayment(Payment payment, String providerResponse) {}
+        if (providerTxId == null || providerTxId.isBlank()) {
+            throw new IllegalArgumentException("Provider transaction id is required");
+        }
 
-    public void retryPayment(Long paymentId) {}
+        if (paidAt == null || paidAt.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid paidAt");
+        }
+
+        if(payment.getStatus() != PaymentStatus.PENDING) {
+            throw new IllegalStateException("Only pending payment can be completed");
+        }
+
+        Invoice invoice = payment.getInvoice();
+
+        if(invoice == null) {
+            throw new IllegalStateException("Payment has no invoice");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.PAID ||
+            invoice.getStatus() == InvoiceStatus.EXPIRED) {
+            throw new IllegalStateException("Invoice already finalized");
+        }
+
+        if (payment.getAmount() != invoice.getAmount()) {
+            throw new IllegalStateException("Payment amount mismatch");
+        }
+
+        payment.complete(providerTxId, providerResponse, paidAt);
+
+        invoice.markPaid(paidAt);
+
+        Subscription subscription = invoice.getSubscription();
+
+        if(subscription != null) {
+            subscription.onInvoicePaid(invoice);
+        }
+
+        paymentRepository.save(payment);
+        invoiceRepository.save(invoice);
+        subscriptionRepository.save(subscription);
+    }
+
+    public void failPayment(Payment payment, String reason, LocalDateTime failedAt) {
+        if(payment == null) {
+            throw new IllegalArgumentException("Payment is null");
+        }
+
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Fail reason is required");
+        }
+
+        if (failedAt == null || failedAt.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid failedAt");
+        }
+
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            return;
+        }
+        
+        if(payment.getStatus() != PaymentStatus.PENDING) {
+            throw new IllegalStateException("Only pending payment can be failed");
+        }
+
+
+        Invoice invoice = payment.getInvoice();
+
+        if(invoice == null) {
+            throw new IllegalStateException("Payment has no invoice");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new IllegalStateException("Invoice already paid");
+        }
+
+        payment.fail(reason);
+
+        invoice.markFailed(reason);
+
+        Subscription subscription = invoice.getSubscription();
+
+        if (subscription != null) {
+            subscription.onInvoiceFailed(invoice);
+            subscriptionRepository.save(subscription);
+        }
+
+        paymentRepository.save(payment);
+        invoiceRepository.save(invoice);
+    }
+
+    public void retryPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new IllegalArgumentException("Payment id not found"));
+
+        if(payment.getStatus() != PaymentStatus.FAILED) {
+            throw new IllegalStateException("Only failed payment can be retried");
+        }
+
+        Invoice invoice = payment.getInvoice();
+
+        if(invoice == null) {
+            throw new IllegalStateException("Invoice is null");
+        }
+
+        if (!invoice.isPayable(LocalDateTime.now())) {
+            throw new IllegalStateException("Invoice is not payable");
+        }
+
+        List<Payment> pendings = paymentRepository.findPendingByInvoiceId(invoice.getId());
+
+        if (!pendings.isEmpty()) {
+            throw new IllegalStateException("There is already a pending payment");
+        }
+
+        if(payment.getAmount() != invoice.getAmount()) {
+            throw new IllegalStateException("Amount is missmatch");
+        }
+
+        Payment retry = Payment.attempt(invoice, payment.getAmount(), payment.getMethod());
+
+        paymentRepository.save(retry);
+
+        processPayment(retry.getId());
+    }
 
     public Payment getPaymentById(Long paymentId) {
         return paymentRepository.findById(paymentId).orElseThrow(() -> new IllegalArgumentException("Payment id not found")); 

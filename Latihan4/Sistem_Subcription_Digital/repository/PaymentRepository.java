@@ -7,6 +7,7 @@ import java.util.Optional;
 public interface PaymentRepository {
     Optional<Payment> findById(Long id);
     List<Payment> findByInvoiceId(Long invoiceId);
+    List<Payment> findPendingByInvoiceId(Long invoiceId);
     List<Payment> findByStatus(Payment.PaymentStatus status);
     void save(Payment payment);
 }

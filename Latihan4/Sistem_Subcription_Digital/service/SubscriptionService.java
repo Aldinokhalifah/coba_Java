@@ -99,15 +99,25 @@ public class SubscriptionService {
 
         invoiceRepository.save(invoice);
 
-        /*
-            Payment flow (nanti):
-            - paymentService.process(invoice)
-            - if success:
-                invoice.markPaid(now)
-            - if fail:
-                invoice.markFailed(reason)
-                subscription.suspend()
-        */
+        // Payment flow
+        try {
+            Payment payment = paymentService.processPaymentForInvoice(invoice.getId(), Payment.PaymentMethod.MANUAL);
+            
+            if (payment.getStatus() == Payment.PaymentStatus.SUCCESS) {
+                invoice.markPaid(LocalDateTime.now());
+                invoiceRepository.save(invoice);
+            } else {
+                invoice.markFailed("Payment processing failed");
+                subscription.suspend();
+                invoiceRepository.save(invoice);
+                subscriptionRepository.save(subscription);
+            }
+        } catch (Exception e) {
+            invoice.markFailed("Payment processing error: " + e.getMessage());
+            subscription.suspend();
+            invoiceRepository.save(invoice);
+            subscriptionRepository.save(subscription);
+        }
 
         return subscription;
     }
