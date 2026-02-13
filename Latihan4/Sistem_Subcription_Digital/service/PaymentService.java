@@ -15,13 +15,11 @@ public class PaymentService {
     PaymentRepository paymentRepository;
     InvoiceRepository invoiceRepository;
     SubscriptionRepository subscriptionRepository;
-    SubscriptionService subscriptionService;
 
-    public PaymentService(PaymentRepository paymentRepository, InvoiceRepository invoiceRepository, SubscriptionRepository subscriptionRepository, SubscriptionService subscriptionService) {
+    public PaymentService(PaymentRepository paymentRepository, InvoiceRepository invoiceRepository, SubscriptionRepository subscriptionRepository) {
         this.paymentRepository = paymentRepository;
         this.invoiceRepository = invoiceRepository;
         this.subscriptionRepository = subscriptionRepository;
-        this.subscriptionService = subscriptionService;
     }
 
     public PaymentRepository getPaymentRepository() {
@@ -315,6 +313,4 @@ public class PaymentService {
     public List<Payment> getPaymentsByInvoice(Long invoiceId) {
         return paymentRepository.findByInvoiceId(invoiceId);
     }
-
-    // public boolean simulateGatewayCharge(Payment payment) {}
 }
