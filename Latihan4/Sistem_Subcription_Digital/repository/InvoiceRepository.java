@@ -9,7 +9,9 @@ public interface InvoiceRepository {
 
     Optional<Invoice> findById(Long id);
     List<Invoice> findBySubscriptionId(Long subscriptionId);
+    Optional<Invoice> findLatestBySubscriptionId(Long subscriptionId);
     Optional<Invoice> findUnpaidBySubscription(Long subscriptionId);
     List<Invoice> findOverdueInvoices(LocalDate today);
+    List<Invoice> existsBySubscriptionAndBillingDate(Long subscriptionId, LocalDate billingDate);
     void save(Invoice invoice);
 }
