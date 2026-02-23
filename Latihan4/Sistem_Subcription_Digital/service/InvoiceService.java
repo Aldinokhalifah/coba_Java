@@ -166,9 +166,100 @@ public class InvoiceService {
         return invoice;
     }
 
-    // public Invoice createUpgradeInvoice(Subscription subscription, Plan newPlan, LocalDate effectiveDate) {}
+    public Invoice createUpgradeInvoice(Subscription subscription, Plan newPlan, LocalDate effectiveDate) {
+        if(subscription == null) {
+            throw new IllegalArgumentException("Subsciption is null");
+        }
 
-    // public Invoice expireInvoice(Long invoiceId, String reason) {}
+        if(newPlan == null) {
+            throw new IllegalArgumentException("New plan is null");
+        }
+
+        if(subscription.getPlan().getId().equals(newPlan.getId())) {
+            throw new IllegalArgumentException("Plan ID must be different from subscription ID");
+        }
+
+        if(subscription.getStatus() != Subscription.SubscriptionStatus.ACTIVE) {
+            throw new IllegalArgumentException("Only active subscription can be upgraded");
+        }
+
+        if(effectiveDate == null) {
+            throw new IllegalArgumentException("Effective date is null");
+        }
+
+        if(effectiveDate.isBefore(LocalDateTime.now().toLocalDate())) {
+            throw new IllegalArgumentException("Invalid effective date");
+        }
+
+        if(newPlan.getPricePeriod() <= 0) {
+            throw new IllegalArgumentException("Invalid new plan price");
+        }
+
+        invoiceRepository.findUnpaidBySubscription(subscription.getId())
+        .ifPresent(s -> {
+            s.markFailed("Subscription upgraded");
+            invoiceRepository.save(s);
+        });
+
+        subscription.upgradeTo(newPlan, effectiveDate);
+        subscriptionRepository.save(subscription);
+
+        double amount = newPlan.getPricePeriod();
+
+        LocalDateTime issueAt = LocalDateTime.now();
+        LocalDateTime dueAt = issueAt.plusDays(7);
+
+        Invoice invoice = new Invoice(
+            null,
+            subscription,
+            issueAt,
+            dueAt,
+            amount,
+            Invoice.InvoiceStatus.PENDING,
+            null,
+            0,
+            "Upgrade plan " + " to " + newPlan.getId()
+        );
+
+        invoiceRepository.save(invoice);
+
+        return invoice;
+    }
+
+    public Invoice expireInvoice(Long invoiceId, String reason) {
+        if(invoiceId == null) {
+            throw new IllegalArgumentException("Invoice ID is null");
+        }
+
+        Invoice invoice = invoiceRepository.findById(invoiceId).orElseThrow( () -> new IllegalArgumentException("Invoice not found"));
+
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Expire reason is required");
+
+        if(invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new IllegalStateException("Cannot expire paid invoice");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.EXPIRED) {
+            return invoice;
+        }
+
+        if(invoice.getDueDate().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Invoice not overdue yet");
+        }
+
+        invoice.expire();
+
+        Subscription subscription = invoice.getSubscription();
+
+        if(subscription != null && subscription.getStatus() == Subscription.SubscriptionStatus.ACTIVE) {
+            subscription.suspend();
+            subscriptionRepository.save(subscription);
+        }
+
+        invoiceRepository.save(invoice);
+
+        return invoice;
+    }
 
     // public Invoice markInvoicePaid(Long invoiceId, LocalDateTime paidAt) {}
 
