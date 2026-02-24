@@ -12,7 +12,6 @@ import Sistem_Subcription_Digital.model.Subscription;
 import Sistem_Subcription_Digital.repository.InvoiceRepository;
 import Sistem_Subcription_Digital.repository.PaymentRepository;
 import Sistem_Subcription_Digital.repository.SubscriptionRepository;
-import java.nio.channels.IllegalSelectorException;
 import java.time.Period;
 import java.util.List;
 
@@ -261,9 +260,93 @@ public class InvoiceService {
         return invoice;
     }
 
-    // public Invoice markInvoicePaid(Long invoiceId, LocalDateTime paidAt) {}
+    public Invoice markInvoicePaid(Long invoiceId, LocalDateTime paidAt) {
+        if(invoiceId == null) {
+            throw new IllegalArgumentException("Invoice ID is null");
+        }
 
-    // public Invoice markInvoiceFailed(Long invoiceId, String reason) {}
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+        .orElseThrow( () -> new IllegalStateException("Invoice not found"));
+
+        if(paidAt == null) {
+            paidAt = LocalDateTime.now();
+        }
+
+        if(invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new IllegalStateException("Invoice already paid");
+        }
+
+        if(invoice.getStatus() == InvoiceStatus.EXPIRED) {
+            throw new IllegalStateException("Cannot pay expired invoice");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.FAILED) {
+            throw new IllegalStateException("Cannot pay failed invoice");
+        }
+
+        if(paidAt.isAfter(LocalDateTime.now().plusMinutes(5))) {
+            throw new IllegalArgumentException("Paid time cannot be in the future");
+        }
+
+        invoice.markPaid(paidAt);
+
+        Subscription subscription = invoice.getSubscription();
+
+        if(subscription != null) {
+            subscription.onInvoicePaid(invoice);
+            subscriptionRepository.save(subscription);
+        }
+
+        invoiceRepository.save(invoice);
+
+        return invoice;
+    }
+
+    public Invoice markInvoiceFailed(Long invoiceId, String reason) {
+        if(invoiceId == null) {
+            throw new IllegalArgumentException("Invoice ID is null");
+        }
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+        .orElseThrow( () -> new IllegalStateException("Invoice not found"));
+
+        Subscription subscription = invoice.getSubscription();
+
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Failed reason is required");
+
+        if (invoice.getStatus() == InvoiceStatus.FAILED) {
+            throw new IllegalStateException("Invoice already failed");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new IllegalStateException("Invoice already paid");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.EXPIRED) {
+            throw new IllegalStateException("Invoice already expired");
+        }
+
+        invoice.markFailed(reason);
+        invoice.incrementAttempt();
+
+        int MAX_RETRY = 3;
+
+        if(invoice.getAttemptCount() >= MAX_RETRY) {
+            invoice.expire();
+            if(subscription != null) {
+                subscription.suspend();
+            }
+        }
+
+
+        invoiceRepository.save(invoice);
+
+        if(subscription != null) {
+            subscriptionRepository.save(subscription);
+        }
+
+        return invoice;
+    }
 
     // public Optional<Invoice> getPayableInvoiceBySubscription(Long subscriptionId) {}
 
