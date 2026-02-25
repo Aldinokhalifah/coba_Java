@@ -2,18 +2,17 @@ package Sistem_Subcription_Digital.service;
 
 import Sistem_Subcription_Digital.model.Invoice;
 import Sistem_Subcription_Digital.model.Invoice.InvoiceStatus;
+import Sistem_Subcription_Digital.model.Payment;
 import Sistem_Subcription_Digital.model.Plan;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 import Sistem_Subcription_Digital.model.Subscription;
 import Sistem_Subcription_Digital.repository.InvoiceRepository;
 import Sistem_Subcription_Digital.repository.PaymentRepository;
 import Sistem_Subcription_Digital.repository.SubscriptionRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
+import java.util.Optional;
 
 public class InvoiceService {
     InvoiceRepository invoiceRepository;
@@ -348,9 +347,97 @@ public class InvoiceService {
         return invoice;
     }
 
-    // public Optional<Invoice> getPayableInvoiceBySubscription(Long subscriptionId) {}
+    public Optional<Invoice> getPayableInvoiceBySubscription(Long subscriptionId) {
+        if(subscriptionId == null) {
+            throw new IllegalArgumentException("Subscription ID is null");
+        }
 
-    // public boolean validateInvoicePayable(Invoice invoice, LocalDateTime now) {}
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+        .orElseThrow(() -> new IllegalStateException("Subscription not found"));
 
-    // public void expireOverdueInvoices(LocalDate now) {}
+        if(subscription.getStatus() != Subscription.SubscriptionStatus.ACTIVE) {
+            return Optional.empty();
+        }
+
+        Optional<Invoice> invoiceOpt = invoiceRepository.findUnpaidBySubscription(subscriptionId);
+
+        if(invoiceOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Invoice invoice = invoiceOpt.get();
+
+        if(invoice.getStatus() != InvoiceStatus.PENDING) {
+            return Optional.empty();
+        }
+
+        if(invoice.getDueDate().isBefore(LocalDateTime.now())) {
+            return Optional.empty();
+        }
+
+        if(invoice.getAmount() <= 0) {
+            return Optional.empty();
+        }
+
+        List<Payment> pendingPayment = paymentRepository.findPendingByInvoiceId(invoice.getId());
+
+        if(!pendingPayment.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if(subscription.getEndDate() != null && subscription.getEndDate().isBefore(LocalDateTime.now())) {
+            return Optional.empty();
+        }
+
+        Optional<Invoice> isLatestForSubscription = invoiceRepository.findLatestBySubscriptionId(subscriptionId);
+
+        if(isLatestForSubscription.isEmpty()) return Optional.empty();
+
+        if(!invoice.getId().equals(isLatestForSubscription.get().getId())) {
+            return Optional.empty();
+        }
+
+        invoiceRepository.save(invoice);
+
+        return Optional.of(invoice);
+    }
+
+    public boolean validateInvoicePayable(Invoice invoice, LocalDateTime now) {
+        if(invoice == null) return false;
+        if(invoice.getStatus() != InvoiceStatus.PENDING) return false;
+        if(invoice.getDueDate().isBefore(now)) return false;
+        if(invoice.getAmount() <= 0) return false;
+
+        Subscription s = invoice.getSubscription();
+        if(s == null || s.getStatus() != Subscription.SubscriptionStatus.ACTIVE) return false;
+        if(s.getEndDate() != null && s.getEndDate().isBefore(now)) return false;
+
+        if(!paymentRepository.findPendingByInvoiceId(invoice.getId()).isEmpty()) return false;
+
+        Optional<Invoice> latest = invoiceRepository.findLatestBySubscriptionId(s.getId());
+        return !(latest.isPresent() && !latest.get().getId().equals(invoice.getId()));
+    }
+
+    public void expireOverdueInvoices(LocalDate now) {
+        if(now == null) {
+            throw new IllegalArgumentException("Date is invalid");
+        }
+
+        List<Invoice> ovdInvoices = invoiceRepository.findOverdueInvoices(now);
+
+        for(Invoice o : ovdInvoices) {
+            if(o.getStatus() == InvoiceStatus.PAID || o.getStatus() == InvoiceStatus.EXPIRED || o.getStatus() == InvoiceStatus.FAILED) continue;
+
+            o.expire();
+
+            Subscription s = o.getSubscription();
+
+            if(s != null && s.getStatus() == Subscription.SubscriptionStatus.ACTIVE) {
+                s.suspend();
+                subscriptionRepository.save(s);
+            }
+
+            invoiceRepository.save(o);
+        }
+    }
 }
