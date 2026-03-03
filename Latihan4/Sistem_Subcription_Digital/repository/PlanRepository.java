@@ -10,6 +10,8 @@ public interface PlanRepository {
 
     Optional<Plan> findByCode(String code);
 
+    List<Plan> existByCode(String code);
+
     List<Plan> findAll();
 
     void save(Plan plan);

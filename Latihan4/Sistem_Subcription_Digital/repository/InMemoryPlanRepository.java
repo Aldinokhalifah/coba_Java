@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class InMemoryPlanRepository implements PlanRepository{
     private final AtomicLong idSeq = new AtomicLong(0);
@@ -29,6 +30,11 @@ public class InMemoryPlanRepository implements PlanRepository{
         }
 
         return storage.values().stream().filter(s -> s.getCode() != null && s.getCode().equalsIgnoreCase(code)).findFirst();
+    }
+
+    @Override
+    public List<Plan> existByCode(String code) {
+        return storage.values().stream().filter(s -> s.getCode().equals(code)).collect(Collectors.toList());
     }
 
     @Override

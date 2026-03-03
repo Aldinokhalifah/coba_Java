@@ -43,5 +43,33 @@ public class Plan {
         return allowDowngradeMidCycle;
     }
 
+    public void setPeriod(Period period) {
+        if(period == null) {
+            throw new IllegalArgumentException("Period cannot be null");
+        }
+        this.period = period;
+    }
+
+    public void setName(String name) {
+        if(name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
+        }
+        this.name = name;
+    }
+
+    public void setCode(String code) {
+        if(code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Code cannot be null or blank");
+        }
+        this.code = code;
+    }
+
+    public void setPricePeriod(double pricePeriod) {
+        if(pricePeriod <= 0) {
+            throw new IllegalArgumentException("Price must be greater than 0");
+        }
+        this.pricePeriod = pricePeriod;
+    }
+
     public void setIdForRepository(Long id) { this.id = id; }
 }
