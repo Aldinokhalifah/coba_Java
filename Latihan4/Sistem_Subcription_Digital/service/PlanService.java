@@ -1,14 +1,12 @@
 package Sistem_Subcription_Digital.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 import Sistem_Subcription_Digital.model.Plan;
 import Sistem_Subcription_Digital.repository.InvoiceRepository;
 import Sistem_Subcription_Digital.repository.PaymentRepository;
 import Sistem_Subcription_Digital.repository.PlanRepository;
 import Sistem_Subcription_Digital.repository.SubscriptionRepository;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -137,7 +135,6 @@ public class PlanService {
         return plan;
     }
 
-
     public Optional<Plan> getPlanById(Long planId) {
         if(planId == null) {
             throw new IllegalArgumentException("Plan ID is null");
@@ -168,17 +165,167 @@ public class PlanService {
         }
     }
 
-    // public void deprecatePlan(Long planId, LocalDate effectiveDate, boolean allowNewSubscriptions) {}
+    public void deprecatePlan(Long planId, LocalDate effectiveDate, boolean allowNewSubscriptions) {
+        if(planId == null) {
+            throw new IllegalArgumentException("Plan ID is null");
+        }
+
+        if(effectiveDate == null) {
+            throw new IllegalArgumentException("Effective date cannot be null");
+        }
+
+        if(effectiveDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Effective date cannot be in the past");
+        }
+
+        Plan plan = planRepository.findById(planId).orElseThrow(() -> new IllegalStateException("Plan is not found"));
+
+        if(plan.isDeprecated()) {
+            throw new IllegalStateException("Plan is already deprecated");
+        }
+
+        plan.setDeprecated(true, effectiveDate, allowNewSubscriptions);
+
+        // Log deprecation (optional)
+        // System.out.println("Plan " + plan.getId() + " deprecated effective from " + effectiveDate + ", allowNewSubscriptions: " + allowNewSubscriptions);
+
+        planRepository.save(plan);
+    }
 
     // public Plan archivePlan(Long planId) {}
 
+    public Plan archivePlan(Long planId) {
+        if(planId == null) {
+            throw new IllegalArgumentException("Plan ID is null");
+        }
+
+        Plan plan = planRepository.findById(planId).orElseThrow(() -> new IllegalStateException("Plan is not found"));
+
+        if(plan.isArchived()) {
+            throw new IllegalStateException("Plan is already archived");
+        }
+
+        plan.setArchived(true);
+
+        // Log archive (optional)
+        // System.out.println("Plan " + plan.getId() + " archived at " + plan.getArchiveDate());
+
+        planRepository.save(plan);
+
+        return plan;
+    }
+
     // public Plan validatePlanForSubscription(Plan plan) {}
+
+    public Plan validatePlanForSubscription(Plan plan) {
+        if(plan == null) {
+            throw new IllegalArgumentException("Plan is null");
+        }
+
+        if(plan.getId() == null) {
+            throw new IllegalStateException("Plan ID is null");
+        }
+
+        Plan existingPlan = planRepository.findById(plan.getId())
+                .orElseThrow(() -> new IllegalStateException("Plan is not found in repository"));
+
+        if(existingPlan.isArchived()) {
+            throw new IllegalStateException("Cannot subscribe to archived plan");
+        }
+
+        if(existingPlan.isDeprecated() && !existingPlan.isAllowNewSubscriptions()) {
+            throw new IllegalStateException("New subscriptions not allowed for deprecated plan");
+        }
+
+        if(!existingPlan.isVisible()) {
+            throw new IllegalStateException("Plan is not visible for subscription");
+        }
+
+        return existingPlan;
+    }
 
     // public Plan migrateSubscribers(Long fromPlanId, Long toPlanId, LocalDate effectiveDate, boolean autoInvoice) {}
 
+    public Plan migrateSubscribers(Long fromPlanId, Long toPlanId, LocalDate effectiveDate, boolean autoInvoice) {
+        if(fromPlanId == null) {
+            throw new IllegalArgumentException("From plan ID is null");
+        }
+
+        if(toPlanId == null) {
+            throw new IllegalArgumentException("To plan ID is null");
+        }
+
+        if(fromPlanId.equals(toPlanId)) {
+            throw new IllegalArgumentException("From and To plan IDs cannot be the same");
+        }
+
+        if(effectiveDate == null) {
+            throw new IllegalArgumentException("Effective date cannot be null");
+        }
+
+        if(effectiveDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Effective date cannot be in the past");
+        }
+
+        planRepository.findById(fromPlanId)
+                .orElseThrow(() -> new IllegalStateException("Source plan is not found"));
+
+        Plan toPlan = planRepository.findById(toPlanId)
+                .orElseThrow(() -> new IllegalStateException("Destination plan is not found"));
+
+        if(toPlan.isArchived()) {
+            throw new IllegalStateException("Cannot migrate to archived plan");
+        }
+
+        // Log migration (optional)
+        // System.out.println("Migrating subscribers from plan " + fromPlanId + " to plan " + toPlanId + 
+        //                   " effective from " + effectiveDate + ", autoInvoice: " + autoInvoice);
+
+        return toPlan;
+    }
+
     // public void setPlanVisibility(Long planId, boolean visible) {}
+
+    public void setPlanVisibility(Long planId, boolean visible) {
+        if(planId == null) {
+            throw new IllegalArgumentException("Plan ID is null");
+        }
+
+        Plan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new IllegalStateException("Plan is not found"));
+
+        if(plan.isArchived()) {
+            throw new IllegalStateException("Cannot change visibility of archived plan");
+        }
+
+        plan.setVisibility(visible);
+
+        // Log visibility change (optional)
+        // System.out.println("Plan " + plan.getId() + " visibility set to " + visible);
+
+        planRepository.save(plan);
+    }
 
     // public List<Plan> listPriceHistory(Long planId) {}
 
+    public List<Double> listPriceHistory(Long planId) {
+        if(planId == null) {
+            throw new IllegalArgumentException("Plan ID is null");
+        }
+
+        Plan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new IllegalStateException("Plan is not found"));
+
+        return plan.getPriceHistory();
+    }
+
     // public boolean canDowngradeMidCycle(Plan plan) {}
+
+    public boolean canDowngradeMidCycle(Plan plan) {
+        if(plan == null) {
+            throw new IllegalArgumentException("Plan is null");
+        }
+
+        return plan.getAllowDowngradeMidCycle();
+    }
 }
