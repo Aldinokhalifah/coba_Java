@@ -1,7 +1,6 @@
 package Sistem_Subcription_Digital.repository;
 
 import Sistem_Subcription_Digital.model.Invoice;
-import Sistem_Subcription_Digital.model.Subscription;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -102,5 +101,10 @@ public class InMemoryInvoiceRepository implements InvoiceRepository {
         } else {
             storage.put(invoice.getId(), invoice);
         }
+    }
+
+    @Override
+    public List<Invoice> findAll() {
+        return new java.util.ArrayList<>(storage.values());
     }
 }

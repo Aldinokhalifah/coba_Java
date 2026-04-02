@@ -44,5 +44,9 @@ public class InMemoryUserRepository implements UserRepository{
             storage.put(user.getId(), user);
         }
     }
-    
+
+    @Override
+    public java.util.List<User> findAll() {
+        return new java.util.ArrayList<>(storage.values());
+    }
 }

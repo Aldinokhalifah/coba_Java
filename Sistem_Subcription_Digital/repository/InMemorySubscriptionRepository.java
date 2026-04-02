@@ -61,4 +61,9 @@ public class InMemorySubscriptionRepository implements SubscriptionRepository{
         .collect(Collectors.toList());
     }
 
+    @Override
+    public List<Subscription> findAll() {
+        return new java.util.ArrayList<>(storage.values());
+    }
+
 }

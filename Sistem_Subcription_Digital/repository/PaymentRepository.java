@@ -10,4 +10,5 @@ public interface PaymentRepository {
     List<Payment> findPendingByInvoiceId(Long invoiceId);
     List<Payment> findByStatus(Payment.PaymentStatus status);
     void save(Payment payment);
+    List<Payment> findAll();
 }

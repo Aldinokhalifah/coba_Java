@@ -14,4 +14,5 @@ public interface InvoiceRepository {
     List<Invoice> findOverdueInvoices(LocalDate today);
     List<Invoice> existsBySubscriptionAndBillingDate(Long subscriptionId, LocalDate billingDate);
     void save(Invoice invoice);
+    List<Invoice> findAll();
 }

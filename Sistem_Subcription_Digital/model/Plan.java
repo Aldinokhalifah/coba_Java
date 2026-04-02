@@ -21,7 +21,7 @@ public class Plan {
     private boolean isVisible;
     private List<Double> priceHistory;
 
-    public Plan(Long id, String code, String name, double pricePeriod, Period period, boolean allowDowngradeMidCycle) {
+    public Plan(Long id, String code, String name, Period period, double pricePeriod) {
         this.id = id;
         this.code = code;
         this.name = name;

@@ -70,4 +70,9 @@ public class InMemoryPaymentRepository implements PaymentRepository {
         .filter(s -> s.getStatus() == Payment.PaymentStatus.PENDING)
         .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Payment> findAll() {
+        return new java.util.ArrayList<>(storage.values());
+    }
 }

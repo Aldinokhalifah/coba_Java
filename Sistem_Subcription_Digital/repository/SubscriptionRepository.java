@@ -11,4 +11,5 @@ public interface SubscriptionRepository {
     Optional<Subscription> findActiveByUserAndPlan(Long userId, Long planId);
     void save(Subscription subscription); 
     List<Subscription> findExpiringBefore(LocalDate date);
+    List<Subscription> findAll();
 }
