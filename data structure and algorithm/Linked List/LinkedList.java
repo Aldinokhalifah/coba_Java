@@ -57,6 +57,22 @@ public class LinkedList {
         head = prev;
     }
 
+    public int findMiddle() {
+        if (head == null) return -1;
+
+        Node slow = head;
+        Node fast = head;
+
+        // Selama fast belum sampai ujung dan gerbong setelah fast juga bukan null
+        while (fast != null && fast.next != null) {
+            // Tulis logika perpindahan slow dan fast di sini
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+
+        return slow.data;
+    }
+
     // Method untuk cetak semua isi
     public void display() {
         Node temp = head;
@@ -75,6 +91,7 @@ public class LinkedList {
         list.add(40);
 
         list.display(); // 10 -> 20 -> 30 -> 40 -> null
+        System.out.println("Nilai tengah: " + list.findMiddle());
         list.delete(20);
         list.display(); // Harusnya: 10 -> 30 -> 40 -> null
         list.delete(10);
