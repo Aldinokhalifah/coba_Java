@@ -73,6 +73,22 @@ public class LinkedList {
         return slow.data;
     }
 
+    public boolean hascycle() {
+
+        Node slow = head;
+        Node fast = head;
+
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+
+            if(fast == slow) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Method untuk cetak semua isi
     public void display() {
         Node temp = head;
@@ -92,6 +108,7 @@ public class LinkedList {
 
         list.display(); // 10 -> 20 -> 30 -> 40 -> null
         System.out.println("Nilai tengah: " + list.findMiddle());
+        System.out.println("Apakah ada siklus? " + list.hascycle());
         list.delete(20);
         list.display(); // Harusnya: 10 -> 30 -> 40 -> null
         list.delete(10);
