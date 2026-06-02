@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.warung.inventory.dto.request.ProdukRequest;
 import com.warung.inventory.dto.response.ProdukResponse;
+import com.warung.inventory.exception.ResourceNotFoundException;
 import com.warung.inventory.model.Produk;
 import com.warung.inventory.repository.ProdukRepository;
 
@@ -42,7 +43,7 @@ public class ProdukService {
 
     public ProdukResponse getProdukById(UUID id) {
         Produk produk = produkRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Produk tidak ditemukan"));
+            .orElseThrow(() -> new ResourceNotFoundException("Produk tidak ditemukan"));
         return toResponse(produk);
     }
 

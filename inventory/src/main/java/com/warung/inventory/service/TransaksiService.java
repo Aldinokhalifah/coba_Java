@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.warung.inventory.dto.request.TransaksiRequest;
 import com.warung.inventory.dto.response.TransaksiResponse;
+import com.warung.inventory.exception.InsufficientStockException;
+import com.warung.inventory.exception.ResourceNotFoundException;
 import com.warung.inventory.model.Produk;
 import com.warung.inventory.model.Transaksi;
 import com.warung.inventory.repository.ProdukRepository;
@@ -54,13 +56,13 @@ public class TransaksiService {
     }
 
     public TransaksiResponse createTransaksi(TransaksiRequest request) {
-        Produk produk = produkRepository.findById(request.getProdukId()).orElseThrow(() -> new RuntimeException("Produk tidak ditemukan"));
+        Produk produk = produkRepository.findById(request.getProdukID()).orElseThrow(() -> new ResourceNotFoundException("Produk tidak ditemukan"));
 
         if (request.getJenis() == Transaksi.Jenis.KELUAR) {
             boolean cekStok = produk.getStokSaatIni() < request.getJumlah();
 
             if (cekStok) {
-                throw new RuntimeException("Stok tidak mencukupi");
+                throw new InsufficientStockException("Stok tidak mencukupi");
             }
             produk.setStokSaatIni(produk.getStokSaatIni() - request.getJumlah());
         } else {
